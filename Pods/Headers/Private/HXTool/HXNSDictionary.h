@@ -1,0 +1,1 @@
+../../../HXTool/HXTool/Classes/HXNSDictionary.h

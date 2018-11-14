@@ -25,7 +25,7 @@
     [super viewDidLoad];
     
     self.view.backgroundColor = [UIColor hx_randomColor];
-    //阅读YYModel, 并实现YYModel 1.0.4
+    //阅读YYModel源码, 并实现YYModel 1.0.4 ver
 
 }
 

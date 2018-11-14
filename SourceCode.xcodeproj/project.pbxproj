@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		316643ED12877B793511B720 /* HXClassInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 31664430519255BC94E4A597 /* HXClassInfo.m */; };
 		AFDDCF79C1973A5C4E615F0E /* libPods-SourceCode.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EF25F170129253C43C9611DA /* libPods-SourceCode.a */; };
 		E60A5E88219960F400A19DD8 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E60A5E87219960F400A19DD8 /* AppDelegate.m */; };
 		E60A5E90219960F600A19DD8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E60A5E8F219960F600A19DD8 /* Assets.xcassets */; };
@@ -16,6 +17,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		31664430519255BC94E4A597 /* HXClassInfo.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HXClassInfo.m; sourceTree = "<group>"; };
+		31664A7DE24FF225ED355F3C /* HXClassInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HXClassInfo.h; sourceTree = "<group>"; };
 		794949CBF6ED631D57EF82B8 /* Pods-SourceCode.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SourceCode.release.xcconfig"; path = "Pods/Target Support Files/Pods-SourceCode/Pods-SourceCode.release.xcconfig"; sourceTree = "<group>"; };
 		A23EF11FFD24FD8C3DEF122E /* Pods-SourceCode.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SourceCode.debug.xcconfig"; path = "Pods/Target Support Files/Pods-SourceCode/Pods-SourceCode.debug.xcconfig"; sourceTree = "<group>"; };
 		E60A5E83219960F400A19DD8 /* SourceCode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SourceCode.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -29,6 +32,7 @@
 		E60A5EA02199787E00A19DD8 /* PrefixHeader.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrefixHeader.pch; sourceTree = "<group>"; };
 		E60A5EA221997A6F00A19DD8 /* YYModelTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = YYModelTableViewController.h; sourceTree = "<group>"; };
 		E60A5EA321997A6F00A19DD8 /* YYModelTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = YYModelTableViewController.m; sourceTree = "<group>"; };
+		E69CD2B8219BAFC60061C54F /* HXModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HXModel.h; sourceTree = "<group>"; };
 		EF25F170129253C43C9611DA /* libPods-SourceCode.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SourceCode.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -108,6 +112,9 @@
 		E60A5EA521997AED00A19DD8 /* HXModel */ = {
 			isa = PBXGroup;
 			children = (
+				E69CD2B8219BAFC60061C54F /* HXModel.h */,
+				31664430519255BC94E4A597 /* HXClassInfo.m */,
+				31664A7DE24FF225ED355F3C /* HXClassInfo.h */,
 			);
 			path = HXModel;
 			sourceTree = "<group>";
@@ -206,6 +213,7 @@
 				E60A5EA421997A6F00A19DD8 /* YYModelTableViewController.m in Sources */,
 				E60A5E96219960F600A19DD8 /* main.m in Sources */,
 				E60A5E88219960F400A19DD8 /* AppDelegate.m in Sources */,
+				316643ED12877B793511B720 /* HXClassInfo.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

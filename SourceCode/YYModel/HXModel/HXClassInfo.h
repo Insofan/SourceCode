@@ -155,7 +155,6 @@ HXEncodingType hxEncodingGetType(const char *typeEncoding);
 */
 - (void)setNeedUpdate;
 
-
 /**
 * @Description:  If this method returns `YES`, you should stop using this instance and call
  `classInfoWithClass` or `classInfoWithClassName` to get the updated class info.
@@ -164,7 +163,6 @@ HXEncodingType hxEncodingGetType(const char *typeEncoding);
 * @Date: 2018/11/14 下午3:11
 */
 - (BOOL)needUpdate;
-
 
 /**
 * @Description:  Get the class info of a specified Class.

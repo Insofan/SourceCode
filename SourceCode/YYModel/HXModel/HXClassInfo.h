@@ -71,7 +71,7 @@ typedef NS_OPTIONS(NSUInteger, HXEncodingType) {
  @return The encoding type.
  */
 
-HXEncodingType hxEncodingGetType(const char *typeEncoding);
+HXEncodingType HXEncodingGetType(const char *typeEncoding);
 
 /**
  * 成员变量Info抽象类, 是一个不透明(opaque)struct, 所以有补齐

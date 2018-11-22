@@ -14,6 +14,7 @@
 		E60A5E96219960F600A19DD8 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = E60A5E95219960F600A19DD8 /* main.m */; };
 		E60A5E9E219961B800A19DD8 /* OSRRootTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E60A5E9D219961B800A19DD8 /* OSRRootTableViewController.m */; };
 		E60A5EA421997A6F00A19DD8 /* YYModelTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E60A5EA321997A6F00A19DD8 /* YYModelTableViewController.m */; };
+		E65D1DBE21A642CD0040ED88 /* NSObject+HXModel.m in Sources */ = {isa = PBXBuildFile; fileRef = E65D1DBD21A642CD0040ED88 /* NSObject+HXModel.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,8 @@
 		E60A5EA02199787E00A19DD8 /* PrefixHeader.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrefixHeader.pch; sourceTree = "<group>"; };
 		E60A5EA221997A6F00A19DD8 /* YYModelTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = YYModelTableViewController.h; sourceTree = "<group>"; };
 		E60A5EA321997A6F00A19DD8 /* YYModelTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = YYModelTableViewController.m; sourceTree = "<group>"; };
+		E65D1DBC21A642CD0040ED88 /* NSObject+HXModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSObject+HXModel.h"; sourceTree = "<group>"; };
+		E65D1DBD21A642CD0040ED88 /* NSObject+HXModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSObject+HXModel.m"; sourceTree = "<group>"; };
 		E69CD2B8219BAFC60061C54F /* HXModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HXModel.h; sourceTree = "<group>"; };
 		EF25F170129253C43C9611DA /* libPods-SourceCode.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SourceCode.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -113,6 +116,8 @@
 			isa = PBXGroup;
 			children = (
 				E69CD2B8219BAFC60061C54F /* HXModel.h */,
+				E65D1DBC21A642CD0040ED88 /* NSObject+HXModel.h */,
+				E65D1DBD21A642CD0040ED88 /* NSObject+HXModel.m */,
 				31664430519255BC94E4A597 /* HXClassInfo.m */,
 				31664A7DE24FF225ED355F3C /* HXClassInfo.h */,
 			);
@@ -210,6 +215,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E60A5E9E219961B800A19DD8 /* OSRRootTableViewController.m in Sources */,
+				E65D1DBE21A642CD0040ED88 /* NSObject+HXModel.m in Sources */,
 				E60A5EA421997A6F00A19DD8 /* YYModelTableViewController.m in Sources */,
 				E60A5E96219960F600A19DD8 /* main.m in Sources */,
 				E60A5E88219960F400A19DD8 /* AppDelegate.m in Sources */,

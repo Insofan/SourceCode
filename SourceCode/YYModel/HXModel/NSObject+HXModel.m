@@ -233,18 +233,19 @@ static force_inline NSNumber *HXNSNumberCreateFromID(__unsafe_unretained id valu
         HXNSDateParseBlock parser = blocks[string.length];
         if (!parser) return nil;
         return parser(string);
-        #undef kParserNum
+#undef kParserNum
     }
     return nil;
 }
 
 /// Get the 'NSBlock' class.
 static force_inline Class HXNSBlockClass() {
-    static Class cls;
+    static Class           cls;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        void (^block)(void) = ^{};
-        cls = ((NSObject *)block).class;
+        void (^block)(void) = ^{
+        };
+        cls = ((NSObject *) block).class;
         while (class_getSuperclass(cls) != [NSObject class]) {
             cls = class_getSuperclass(cls);
         }
@@ -267,7 +268,7 @@ static force_inline NSDateFormatter *HXISODateFormatter() {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         formatter = [[NSDateFormatter alloc] init];
-        formatter.locale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US_POSIX"];
+        formatter.locale     = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US_POSIX"];
         formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZ";
     });
     return formatter;
@@ -276,8 +277,8 @@ static force_inline NSDateFormatter *HXISODateFormatter() {
 /// Get the value with key paths from dictionary
 /// The dic should be NSDictionary, and the keyPath should not be nil.
 static force_inline id HXValueForKeyPath(__unsafe_unretained NSDictionary *dic, __unsafe_unretained NSArray *keyPaths) {
-    id value = nil;
-    for (NSUInteger i = 0, max = keyPaths.count; i < max; i++) {
+    id              value = nil;
+    for (NSUInteger i     = 0, max = keyPaths.count; i < max; i++) {
         value = dic[keyPaths[i]];
         if (i + 1 < max) {
             if ([value isKindOfClass:[NSDictionary class]]) {
@@ -293,13 +294,13 @@ static force_inline id HXValueForKeyPath(__unsafe_unretained NSDictionary *dic, 
 /// Get the value with multi key (or key path) from dictionary
 /// The dic should be NSDictionary
 static force_inline id HXValueForMultiKeys(__unsafe_unretained NSDictionary *dic, __unsafe_unretained NSArray *multiKeys) {
-    id value = nil;
+    id            value = nil;
     for (NSString *key in multiKeys) {
         if ([key isKindOfClass:[NSString class]]) {
             value = dic[key];
             if (value) break;
         } else {
-            value = HXValueForKeyPath(dic, (NSArray *)key);
+            value = HXValueForKeyPath(dic, (NSArray *) key);
             if (value) break;
         }
     }
@@ -309,31 +310,196 @@ static force_inline id HXValueForMultiKeys(__unsafe_unretained NSDictionary *dic
 /// A property info in object model.
 @interface _HXModelPropertyMeta : NSObject {
 @package
-    NSString *_name;             ///< property's name
-    HXEncodingType _type;        ///< property's type
+    NSString         *_name;             ///< property's name
+    HXEncodingType   _type;        ///< property's type
     HXEncodingNSType _nsType;    ///< property's Foundation type
-    BOOL _isCNumber;             ///< is c number type
-    Class _cls;                  ///< property's class, or nil
-    Class _genericCls;           ///< container's generic class, or nil if threr's no generic class
-    SEL _getter;                 ///< getter, or nil if the instances cannot respond
-    SEL _setter;                 ///< setter, or nil if the instances cannot respond
-    BOOL _isKVCCompatible;       ///< YES if it can access with key-value coding
-    BOOL _isStructAvailableForKeyedArchiver; ///< YES if the struct can encoded with keyed archiver/unarchiver
-    BOOL _hasCustomClassFromDictionary; ///< class/generic class implements +modelCustomClassForDictionary:
+    BOOL             _isCNumber;             ///< is c number type
+    Class            _cls;                  ///< property's class, or nil
+    Class            _genericCls;           ///< container's generic class, or nil if threr's no generic class
+    SEL              _getter;                 ///< getter, or nil if the instances cannot respond
+    SEL              _setter;                 ///< setter, or nil if the instances cannot respond
+    BOOL             _isKVCCompatible;       ///< YES if it can access with key-value coding
+    BOOL             _isStructAvailableForKeyedArchiver; ///< YES if the struct can encoded with keyed archiver/unarchiver
+    BOOL             _hasCustomClassFromDictionary; ///< class/generic class implements +modelCustomClassForDictionary:
 
     /*
      property->key:       _mappedToKey:key     _mappedToKeyPath:nil            _mappedToKeyArray:nil
      property->keyPath:   _mappedToKey:keyPath _mappedToKeyPath:keyPath(array) _mappedToKeyArray:nil
      property->keys:      _mappedToKey:keys[0] _mappedToKeyPath:nil/keyPath    _mappedToKeyArray:keys(array)
      */
-    NSString *_mappedToKey;      ///< the key mapped to
-    NSArray *_mappedToKeyPath;   ///< the key path mapped to (nil if the name is not key path)
-    NSArray *_mappedToKeyArray;  ///< the key(NSString) or keyPath(NSArray) array (nil if not mapped to multiple keys)
-    HXClassPropertyInfo *_info;  ///< property's info
+    NSString             *_mappedToKey;      ///< the key mapped to
+    NSArray              *_mappedToKeyPath;   ///< the key path mapped to (nil if the name is not key path)
+    NSArray              *_mappedToKeyArray;  ///< the key(NSString) or keyPath(NSArray) array (nil if not mapped to multiple keys)
+    HXClassPropertyInfo  *_info;  ///< property's info
     _HXModelPropertyMeta *_next; ///< next meta if there are multiple properties mapped to the same key.
 }
 @end
 
+@implementation _HXModelPropertyMeta
++ (instancetype)metaWithClassInfo:(HXClassInfo *)classInfo propertyInfo:(HXClassPropertyInfo *)propertyInfo generic:(Class)generic {
+
+    // support pseudo generic class with protocol name
+    if (!generic && propertyInfo.protocols) {
+        for (NSString *protocol in propertyInfo.protocols) {
+            Class cls = objc_getClass(protocol.UTF8String);
+            if (cls) {
+                generic = cls;
+                break;
+            }
+        }
+    }
+
+    _HXModelPropertyMeta *meta = [self new];
+    meta->_name       = propertyInfo.name;
+    meta->_type       = propertyInfo.type;
+    meta->_info       = propertyInfo;
+    meta->_genericCls = generic;
+
+    if ((meta->_type & HXEncodingTypeMask) == HXEncodingTypeObject) {
+        meta->_nsType = HXClassGetNSType(propertyInfo.cls);
+    } else {
+        meta->_isCNumber = HXEncodingTypeIsCNumber(meta->_type);
+    }
+    if ((meta->_type & HXEncodingTypeMask) == HXEncodingTypeStruct) {
+        /*
+         It seems that NSKeyedUnarchiver cannot decode NSValue except these structs:
+         */
+        static NSSet           *types = nil;
+        static dispatch_once_t onceToken;
+        dispatch_once(&onceToken, ^{
+            NSMutableSet *set = [NSMutableSet new];
+            // 32 bit
+            [set addObject:@"{CGSize=ff}"];
+            [set addObject:@"{CGPoint=ff}"];
+            [set addObject:@"{CGRect={CGPoint=ff}{CGSize=ff}}"];
+            [set addObject:@"{CGAffineTransform=ffffff}"];
+            [set addObject:@"{UIEdgeInsets=ffff}"];
+            [set addObject:@"{UIOffset=ff}"];
+            // 64 bit
+            [set addObject:@"{CGSize=dd}"];
+            [set addObject:@"{CGPoint=dd}"];
+            [set addObject:@"{CGRect={CGPoint=dd}{CGSize=dd}}"];
+            [set addObject:@"{CGAffineTransform=dddddd}"];
+            [set addObject:@"{UIEdgeInsets=dddd}"];
+            [set addObject:@"{UIOffset=dd}"];
+            types = set;
+        });
+        if ([types containsObject:propertyInfo.typeEncoding]) {
+            meta->_isStructAvailableForKeyedArchiver = YES;
+        }
+    }
+    meta->_cls        = propertyInfo.cls;
+
+    if (generic) {
+        meta->_hasCustomClassFromDictionary = [generic respondsToSelector:@selector(modelCustomClassForDictionary:)];
+    } else if (meta->_cls && meta->_nsType == HXEncodingTypeNSUnknown) {
+        meta->_hasCustomClassFromDictionary = [meta->_cls respondsToSelector:@selector(modelCustomClassForDictionary:)];
+    }
+
+    if (propertyInfo.getter) {
+        if ([classInfo.cls instancesRespondToSelector:propertyInfo.getter]) {
+            meta->_getter = propertyInfo.getter;
+        }
+    }
+    if (propertyInfo.setter) {
+        if ([classInfo.cls instancesRespondToSelector:propertyInfo.setter]) {
+            meta->_setter = propertyInfo.setter;
+        }
+    }
+
+    if (meta->_getter && meta->_setter) {
+        /*
+         KVC invalid type:
+         long double
+         pointer (such as SEL/CoreFoundation object)
+         */
+        switch (meta->_type & HXEncodingTypeMask) {
+            case HXEncodingTypeBool:
+            case HXEncodingTypeInt8:
+            case HXEncodingTypeUInt8:
+            case HXEncodingTypeInt16:
+            case HXEncodingTypeUInt16:
+            case HXEncodingTypeInt32:
+            case HXEncodingTypeUInt32:
+            case HXEncodingTypeInt64:
+            case HXEncodingTypeUInt64:
+            case HXEncodingTypeFloat:
+            case HXEncodingTypeDouble:
+            case HXEncodingTypeObject:
+            case HXEncodingTypeClass:
+            case HXEncodingTypeBlock:
+            case HXEncodingTypeStruct:
+            case HXEncodingTypeUnion: {
+                meta->_isKVCCompatible = YES;
+            }
+                break;
+            default:
+                break;
+        }
+    }
+
+    return meta;
+}
+@end
+
+/// A class info in object model.
+@interface _HXModelMeta : NSObject {
+@package
+    HXClassInfo      *_classInfo;
+    /// Key:mapped key and key path, Value:_HXModelPropertyMeta.
+    NSDictionary     *_mapper;
+    /// Array<_HXModelPropertyMeta>, all property meta of this model.
+    NSArray          *_allPropertyMetas;
+    /// Array<_HXModelPropertyMeta>, property meta which is mapped to a key path.
+    NSArray          *_keyPathPropertyMetas;
+    /// Array<_HXModelPropertyMeta>, property meta which is mapped to multi keys.
+    NSArray          *_multiKeysPropertyMetas;
+    /// The number of mapped key (and key path), same to _mapper.count.
+    NSUInteger       _keyMappedCount;
+    /// Model class type.
+    HXEncodingNSType _nsType;
+
+    BOOL _hasCustomWillTransformFromDictionary;
+    BOOL _hasCustomTransformFromDictionary;
+    BOOL _hasCustomTransformToDictionary;
+    BOOL _hasCustomClassFromDictionary;
+}
+@end
+
+@implementation _HXModelMeta
+
+- (instancetype)initWithClass:(Class)cls {
+    HXClassInfo *classInfo = [HXClassInfo classInfoWithClass:cls];
+    if (!classInfo) {
+        return nil;
+    }
+
+    self = [super init];
+
+    //黑名单
+    //Get black list
+    NSSet *blackList = nil;
+    if ([cls respondsToSelector:@selector(modelPropertyBlacklist)]) {
+        NSArray *properties = [(id<HXModel>)cls modelPropertyBlacklist];
+        if (properties) {
+            blackList = [NSSet setWithArray:properties];
+        }
+    }
+
+    // Get white list
+    NSSet *whitelist = nil;
+    if ([cls respondsToSelector:@selector(modelPropertyWhitelist)]) {
+        NSArray *properties = [(id<HXModel>)cls modelPropertyWhitelist];
+        if (properties) {
+            whitelist = [NSSet setWithArray:properties];
+        }
+    }
+
+
+    return self;
+}
+
+@end
 
 @implementation NSObject (HXModel)
 

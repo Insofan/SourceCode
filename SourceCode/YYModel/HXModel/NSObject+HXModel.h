@@ -411,6 +411,14 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSArray<NSString *> *)modelPropertyBlacklist;
 
 /**
+ If a property is not in the whitelist, it will be ignored in model transform process.
+ Returns nil to ignore this feature.
+
+ @return An array of property's name.
+ */
++ (nullable NSArray<NSString *> *)modelPropertyWhitelist;
+
+/**
  * 合下面modelCustomTransformFromDictionary类似, 但这个方法生命周期是will 会在 `+modelWithJSON:`, `+modelWithDictionary:`, `-modelSetWithJSON:` and `-modelSetWithDictionary:`之前执行
  */
 /**

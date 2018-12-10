@@ -682,6 +682,478 @@ static force_inline id HXValueForMultiKeys(__unsafe_unretained NSDictionary *dic
     return self;
 }
 
+/// Returns the cached model class meta
++ (instancetype)metaWithClass:(Class)cls {
+    if (!cls) return nil;
+    static CFMutableDictionaryRef cache;
+    static dispatch_once_t onceToken;
+    static dispatch_semaphore_t lock;
+    dispatch_once(&onceToken, ^{
+        cache = CFDictionaryCreateMutable(CFAllocatorGetDefault(), 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+        lock = dispatch_semaphore_create(1);
+    });
+    dispatch_semaphore_wait(lock, DISPATCH_TIME_FOREVER);
+    _HXModelMeta *meta = CFDictionaryGetValue(cache, (__bridge const void *)(cls));
+    dispatch_semaphore_signal(lock);
+    if (!meta || meta->_classInfo.needUpdate) {
+        meta = [[_HXModelMeta alloc] initWithClass:cls];
+        if (meta) {
+            dispatch_semaphore_wait(lock, DISPATCH_TIME_FOREVER);
+            CFDictionarySetValue(cache, (__bridge const void *)(cls), (__bridge const void *)(meta));
+            dispatch_semaphore_signal(lock);
+        }
+    }
+    return meta;
+}
+
+/**
+ * 将所有number 转换为NSNumber
+ Get number from property.
+ @discussion Caller should hold strong reference to the parameters before this function returns.
+ @param model Should not be nil.
+ @param meta  Should not be nil, meta.isCNumber should be YES, meta.getter should not be nil.
+ @return A number object, or nil if failed.
+ */
+static force_inline NSNumber *ModelCreateNumberFromProperty(__unsafe_unretained id model,
+        __unsafe_unretained _HXModelPropertyMeta *meta) {
+    switch (meta->_type & HXEncodingTypeMask) {
+        case HXEncodingTypeBool: {
+            return @(((bool (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeInt8: {
+            return @(((int8_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeUInt8: {
+            return @(((uint8_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeInt16: {
+            return @(((int16_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeUInt16: {
+            return @(((uint16_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeInt32: {
+            return @(((int32_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeUInt32: {
+            return @(((uint32_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeInt64: {
+            return @(((int64_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeUInt64: {
+            return @(((uint64_t (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter));
+        }
+        case HXEncodingTypeFloat: {
+            float num = ((float (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter);
+            if (isnan(num) || isinf(num)) return nil;
+            return @(num);
+        }
+        case HXEncodingTypeDouble: {
+            double num = ((double (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter);
+            if (isnan(num) || isinf(num)) return nil;
+            return @(num);
+        }
+        case HXEncodingTypeLongDouble: {
+            double num = ((long double (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter);
+            if (isnan(num) || isinf(num)) return nil;
+            return @(num);
+        }
+        default: return nil;
+    }
+}
+
+/**
+ Set number to property.
+ @discussion Caller should hold strong reference to the parameters before this function returns.
+ @param model Should not be nil.
+ @param num   Can be nil.
+ @param meta  Should not be nil, meta.isCNumber should be YES, meta.setter should not be nil.
+ */
+static force_inline void ModelSetNumberToProperty(__unsafe_unretained id model,
+        __unsafe_unretained NSNumber *num,
+        __unsafe_unretained _HXModelPropertyMeta *meta) {
+    switch (meta->_type & HXEncodingTypeMask) {
+        case HXEncodingTypeBool: {
+            ((void (*)(id, SEL, bool))(void *) objc_msgSend)((id)model, meta->_setter, num.boolValue);
+        } break;
+        case HXEncodingTypeInt8: {
+            ((void (*)(id, SEL, int8_t))(void *) objc_msgSend)((id)model, meta->_setter, (int8_t)num.charValue);
+        } break;
+        case HXEncodingTypeUInt8: {
+            ((void (*)(id, SEL, uint8_t))(void *) objc_msgSend)((id)model, meta->_setter, (uint8_t)num.unsignedCharValue);
+        } break;
+        case HXEncodingTypeInt16: {
+            ((void (*)(id, SEL, int16_t))(void *) objc_msgSend)((id)model, meta->_setter, (int16_t)num.shortValue);
+        } break;
+        case HXEncodingTypeUInt16: {
+            ((void (*)(id, SEL, uint16_t))(void *) objc_msgSend)((id)model, meta->_setter, (uint16_t)num.unsignedShortValue);
+        } break;
+        case HXEncodingTypeInt32: {
+            ((void (*)(id, SEL, int32_t))(void *) objc_msgSend)((id)model, meta->_setter, (int32_t)num.intValue);
+        }
+        case HXEncodingTypeUInt32: {
+            ((void (*)(id, SEL, uint32_t))(void *) objc_msgSend)((id)model, meta->_setter, (uint32_t)num.unsignedIntValue);
+        } break;
+        case HXEncodingTypeInt64: {
+            if ([num isKindOfClass:[NSDecimalNumber class]]) {
+                ((void (*)(id, SEL, int64_t))(void *) objc_msgSend)((id)model, meta->_setter, (int64_t)num.stringValue.longLongValue);
+            } else {
+                ((void (*)(id, SEL, uint64_t))(void *) objc_msgSend)((id)model, meta->_setter, (uint64_t)num.longLongValue);
+            }
+        } break;
+        case HXEncodingTypeUInt64: {
+            if ([num isKindOfClass:[NSDecimalNumber class]]) {
+                ((void (*)(id, SEL, int64_t))(void *) objc_msgSend)((id)model, meta->_setter, (int64_t)num.stringValue.longLongValue);
+            } else {
+                ((void (*)(id, SEL, uint64_t))(void *) objc_msgSend)((id)model, meta->_setter, (uint64_t)num.unsignedLongLongValue);
+            }
+        } break;
+        case HXEncodingTypeFloat: {
+            float f = num.floatValue;
+            if (isnan(f) || isinf(f)) f = 0;
+            ((void (*)(id, SEL, float))(void *) objc_msgSend)((id)model, meta->_setter, f);
+        } break;
+        case HXEncodingTypeDouble: {
+            double d = num.doubleValue;
+            if (isnan(d) || isinf(d)) d = 0;
+            ((void (*)(id, SEL, double))(void *) objc_msgSend)((id)model, meta->_setter, d);
+        } break;
+        case HXEncodingTypeLongDouble: {
+            long double d = num.doubleValue;
+            if (isnan(d) || isinf(d)) d = 0;
+            ((void (*)(id, SEL, long double))(void *) objc_msgSend)((id)model, meta->_setter, (long double)d);
+        } // break; commented for code coverage in next line
+        default: break;
+    }
+}
+
+
+/**
+ Set value to model with a property meta.
+
+ @discussion Caller should hold strong reference to the parameters before this function returns.
+
+ @param model Should not be nil.
+ @param value Should not be nil, but can be NSNull.
+ @param meta  Should not be nil, and meta->_setter should not be nil.
+ */
+static void ModelSetValueForProperty(__unsafe_unretained id model,
+        __unsafe_unretained id value,
+        __unsafe_unretained _HXModelPropertyMeta *meta) {
+    if (meta->_isCNumber) {
+        NSNumber *num = HXNSNumberCreateFromID(value);
+        ModelSetNumberToProperty(model, num, meta);
+        if (num != nil) [num class]; // hold the number
+    } else if (meta->_nsType) {
+        if (value == (id)kCFNull) {
+            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, (id)nil);
+        } else {
+            switch (meta->_nsType) {
+                case HXEncodingTypeNSString:
+                case HXEncodingTypeNSMutableString: {
+                    if ([value isKindOfClass:[NSString class]]) {
+                        if (meta->_nsType == HXEncodingTypeNSString) {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                        } else {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, ((NSString *)value).mutableCopy);
+                        }
+                    } else if ([value isKindOfClass:[NSNumber class]]) {
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model,
+                                meta->_setter,
+                                (meta->_nsType == HXEncodingTypeNSString) ?
+                                        ((NSNumber *)value).stringValue :
+                                        ((NSNumber *)value).stringValue.mutableCopy);
+                    } else if ([value isKindOfClass:[NSData class]]) {
+                        NSMutableString *string = [[NSMutableString alloc] initWithData:value encoding:NSUTF8StringEncoding];
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, string);
+                    } else if ([value isKindOfClass:[NSURL class]]) {
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model,
+                                meta->_setter,
+                                (meta->_nsType == HXEncodingTypeNSString) ?
+                                        ((NSURL *)value).absoluteString :
+                                        ((NSURL *)value).absoluteString.mutableCopy);
+                    } else if ([value isKindOfClass:[NSAttributedString class]]) {
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model,
+                                meta->_setter,
+                                (meta->_nsType == HXEncodingTypeNSString) ?
+                                        ((NSAttributedString *)value).string :
+                                        ((NSAttributedString *)value).string.mutableCopy);
+                    }
+                } break;
+
+                case HXEncodingTypeNSValue:
+                case HXEncodingTypeNSNumber:
+                case HXEncodingTypeNSDecimalNumber: {
+                    if (meta->_nsType == HXEncodingTypeNSNumber) {
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, HXNSNumberCreateFromID(value));
+                    } else if (meta->_nsType == HXEncodingTypeNSDecimalNumber) {
+                        if ([value isKindOfClass:[NSDecimalNumber class]]) {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                        } else if ([value isKindOfClass:[NSNumber class]]) {
+                            NSDecimalNumber *decNum = [NSDecimalNumber decimalNumberWithDecimal:[((NSNumber *)value) decimalValue]];
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, decNum);
+                        } else if ([value isKindOfClass:[NSString class]]) {
+                            NSDecimalNumber *decNum = [NSDecimalNumber decimalNumberWithString:value];
+                            NSDecimal dec = decNum.decimalValue;
+                            if (dec._length == 0 && dec._isNegative) {
+                                decNum = nil; // NaN
+                            }
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, decNum);
+                        }
+                    } else { // HXEncodingTypeNSValue
+                        if ([value isKindOfClass:[NSValue class]]) {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                        }
+                    }
+                } break;
+
+                case HXEncodingTypeNSData:
+                case HXEncodingTypeNSMutableData: {
+                    if ([value isKindOfClass:[NSData class]]) {
+                        if (meta->_nsType == HXEncodingTypeNSData) {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                        } else {
+                            NSMutableData *data = ((NSData *)value).mutableCopy;
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, data);
+                        }
+                    } else if ([value isKindOfClass:[NSString class]]) {
+                        NSData *data = [(NSString *)value dataUsingEncoding:NSUTF8StringEncoding];
+                        if (meta->_nsType == HXEncodingTypeNSMutableData) {
+                            data = ((NSData *)data).mutableCopy;
+                        }
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, data);
+                    }
+                } break;
+
+                case HXEncodingTypeNSDate: {
+                    if ([value isKindOfClass:[NSDate class]]) {
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                    } else if ([value isKindOfClass:[NSString class]]) {
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, HXNSDateFromString(value));
+                    }
+                } break;
+
+                case HXEncodingTypeNSURL: {
+                    if ([value isKindOfClass:[NSURL class]]) {
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                    } else if ([value isKindOfClass:[NSString class]]) {
+                        NSCharacterSet *set = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+                        NSString *str = [value stringByTrimmingCharactersInSet:set];
+                        if (str.length == 0) {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, nil);
+                        } else {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, [[NSURL alloc] initWithString:str]);
+                        }
+                    }
+                } break;
+
+                case HXEncodingTypeNSArray:
+                case HXEncodingTypeNSMutableArray: {
+                    if (meta->_genericCls) {
+                        NSArray *valueArr = nil;
+                        if ([value isKindOfClass:[NSArray class]]) valueArr = value;
+                        else if ([value isKindOfClass:[NSSet class]]) valueArr = ((NSSet *)value).allObjects;
+                        if (valueArr) {
+                            NSMutableArray *objectArr = [NSMutableArray new];
+                            for (id one in valueArr) {
+                                if ([one isKindOfClass:meta->_genericCls]) {
+                                    [objectArr addObject:one];
+                                } else if ([one isKindOfClass:[NSDictionary class]]) {
+                                    Class cls = meta->_genericCls;
+                                    if (meta->_hasCustomClassFromDictionary) {
+                                        cls = [cls modelCustomClassForDictionary:one];
+                                        if (!cls) cls = meta->_genericCls; // for xcode code coverage
+                                    }
+                                    NSObject *newOne = [cls new];
+                                    [newOne yy_modelSetWithDictionary:one];
+                                    if (newOne) [objectArr addObject:newOne];
+                                }
+                            }
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, objectArr);
+                        }
+                    } else {
+                        if ([value isKindOfClass:[NSArray class]]) {
+                            if (meta->_nsType == HXEncodingTypeNSArray) {
+                                ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                            } else {
+                                ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model,
+                                        meta->_setter,
+                                        ((NSArray *)value).mutableCopy);
+                            }
+                        } else if ([value isKindOfClass:[NSSet class]]) {
+                            if (meta->_nsType == HXEncodingTypeNSArray) {
+                                ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, ((NSSet *)value).allObjects);
+                            } else {
+                                ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model,
+                                        meta->_setter,
+                                        ((NSSet *)value).allObjects.mutableCopy);
+                            }
+                        }
+                    }
+                } break;
+
+                case HXEncodingTypeNSDictionary:
+                case HXEncodingTypeNSMutableDictionary: {
+                    if ([value isKindOfClass:[NSDictionary class]]) {
+                        if (meta->_genericCls) {
+                            NSMutableDictionary *dic = [NSMutableDictionary new];
+                            [((NSDictionary *)value) enumerateKeysAndObjectsUsingBlock:^(NSString *oneKey, id oneValue, BOOL *stop) {
+                                if ([oneValue isKindOfClass:[NSDictionary class]]) {
+                                    Class cls = meta->_genericCls;
+                                    if (meta->_hasCustomClassFromDictionary) {
+                                        cls = [cls modelCustomClassForDictionary:oneValue];
+                                        if (!cls) cls = meta->_genericCls; // for xcode code coverage
+                                    }
+                                    NSObject *newOne = [cls new];
+                                    [newOne yy_modelSetWithDictionary:(id)oneValue];
+                                    if (newOne) dic[oneKey] = newOne;
+                                }
+                            }];
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, dic);
+                        } else {
+                            if (meta->_nsType == HXEncodingTypeNSDictionary) {
+                                ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, value);
+                            } else {
+                                ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model,
+                                        meta->_setter,
+                                        ((NSDictionary *)value).mutableCopy);
+                            }
+                        }
+                    }
+                } break;
+
+                case HXEncodingTypeNSSet:
+                case HXEncodingTypeNSMutableSet: {
+                    NSSet *valueSet = nil;
+                    if ([value isKindOfClass:[NSArray class]]) valueSet = [NSMutableSet setWithArray:value];
+                    else if ([value isKindOfClass:[NSSet class]]) valueSet = ((NSSet *)value);
+
+                    if (meta->_genericCls) {
+                        NSMutableSet *set = [NSMutableSet new];
+                        for (id one in valueSet) {
+                            if ([one isKindOfClass:meta->_genericCls]) {
+                                [set addObject:one];
+                            } else if ([one isKindOfClass:[NSDictionary class]]) {
+                                Class cls = meta->_genericCls;
+                                if (meta->_hasCustomClassFromDictionary) {
+                                    cls = [cls modelCustomClassForDictionary:one];
+                                    if (!cls) cls = meta->_genericCls; // for xcode code coverage
+                                }
+                                NSObject *newOne = [cls new];
+                                [newOne yy_modelSetWithDictionary:one];
+                                if (newOne) [set addObject:newOne];
+                            }
+                        }
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, set);
+                    } else {
+                        if (meta->_nsType == HXEncodingTypeNSSet) {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, valueSet);
+                        } else {
+                            ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model,
+                                    meta->_setter,
+                                    ((NSSet *)valueSet).mutableCopy);
+                        }
+                    }
+                } // break; commented for code coverage in next line
+
+                default: break;
+            }
+        }
+    } else {
+        BOOL isNull = (value == (id)kCFNull);
+        switch (meta->_type & HXEncodingTypeMask) {
+            case HXEncodingTypeObject: {
+                Class cls = meta->_genericCls ?: meta->_cls;
+                if (isNull) {
+                    ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, (id)nil);
+                } else if ([value isKindOfClass:cls] || !cls) {
+                    ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, (id)value);
+                } else if ([value isKindOfClass:[NSDictionary class]]) {
+                    NSObject *one = nil;
+                    if (meta->_getter) {
+                        one = ((id (*)(id, SEL))(void *) objc_msgSend)((id)model, meta->_getter);
+                    }
+                    if (one) {
+                        [one yy_modelSetWithDictionary:value];
+                    } else {
+                        if (meta->_hasCustomClassFromDictionary) {
+                            cls = [cls modelCustomClassForDictionary:value] ?: cls;
+                        }
+                        one = [cls new];
+                        [one yy_modelSetWithDictionary:value];
+                        ((void (*)(id, SEL, id))(void *) objc_msgSend)((id)model, meta->_setter, (id)one);
+                    }
+                }
+            } break;
+
+            case HXEncodingTypeClass: {
+                if (isNull) {
+                    ((void (*)(id, SEL, Class))(void *) objc_msgSend)((id)model, meta->_setter, (Class)NULL);
+                } else {
+                    Class cls = nil;
+                    if ([value isKindOfClass:[NSString class]]) {
+                        cls = NSClassFromString(value);
+                        if (cls) {
+                            ((void (*)(id, SEL, Class))(void *) objc_msgSend)((id)model, meta->_setter, (Class)cls);
+                        }
+                    } else {
+                        cls = object_getClass(value);
+                        if (cls) {
+                            if (class_isMetaClass(cls)) {
+                                ((void (*)(id, SEL, Class))(void *) objc_msgSend)((id)model, meta->_setter, (Class)value);
+                            }
+                        }
+                    }
+                }
+            } break;
+
+            case  HXEncodingTypeSEL: {
+                if (isNull) {
+                    ((void (*)(id, SEL, SEL))(void *) objc_msgSend)((id)model, meta->_setter, (SEL)NULL);
+                } else if ([value isKindOfClass:[NSString class]]) {
+                    SEL sel = NSSelectorFromString(value);
+                    if (sel) ((void (*)(id, SEL, SEL))(void *) objc_msgSend)((id)model, meta->_setter, (SEL)sel);
+                }
+            } break;
+
+            case HXEncodingTypeBlock: {
+                if (isNull) {
+                    ((void (*)(id, SEL, void (^)()))(void *) objc_msgSend)((id)model, meta->_setter, (void (^)())NULL);
+                } else if ([value isKindOfClass:HXNSBlockClass()]) {
+                    ((void (*)(id, SEL, void (^)()))(void *) objc_msgSend)((id)model, meta->_setter, (void (^)())value);
+                }
+            } break;
+
+            case HXEncodingTypeStruct:
+            case HXEncodingTypeUnion:
+            case HXEncodingTypeCArray: {
+                if ([value isKindOfClass:[NSValue class]]) {
+                    const char *valueType = ((NSValue *)value).objCType;
+                    const char *metaType = meta->_info.typeEncoding.UTF8String;
+                    if (valueType && metaType && strcmp(valueType, metaType) == 0) {
+                        [model setValue:value forKey:meta->_name];
+                    }
+                }
+            } break;
+
+            case HXEncodingTypePointer:
+            case HXEncodingTypeCString: {
+                if (isNull) {
+                    ((void (*)(id, SEL, void *))(void *) objc_msgSend)((id)model, meta->_setter, (void *)NULL);
+                } else if ([value isKindOfClass:[NSValue class]]) {
+                    NSValue *nsValue = value;
+                    if (nsValue.objCType && strcmp(nsValue.objCType, "^v") == 0) {
+                        ((void (*)(id, SEL, void *))(void *) objc_msgSend)((id)model, meta->_setter, nsValue.pointerValue);
+                    }
+                }
+            } // break; commented for code coverage in next line
+
+            default: break;
+        }
+    }
+}
+
 @end
 
 @implementation NSObject (HXModel)
